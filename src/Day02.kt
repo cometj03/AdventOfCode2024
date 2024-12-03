@@ -1,17 +1,7 @@
 fun main() {
     fun isSafe(row: List<Int>): Boolean {
-        val isUp = row.let {
-            (1 until row.size).forEach { i ->
-                if (row[i] - row[i - 1] !in (1..3)) return@let false
-            }
-            true
-        }
-        val isDown = row.let {
-            (1 until row.size).forEach { i ->
-                if (row[i] - row[i - 1] !in (-3..-1)) return@let false
-            }
-            true
-        }
+        val isUp = row.zipWithNext().all { (a, b) -> b - a in (1..3) }
+        val isDown = row.zipWithNext().all { (a, b) -> a - b in (1..3) }
         return isUp || isDown
     }
 
