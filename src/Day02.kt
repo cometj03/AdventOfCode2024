@@ -25,12 +25,10 @@ fun main() {
         return input
             .map { it.split(" ").map(String::toInt) }
             .count { row ->
-                if (isSafe(row)) return@count true
-                row.indices.forEach { i ->
+                isSafe(row) || row.indices.any { i ->
                     val sublist = row.subList(0, i) + row.subList(i + 1, row.size)
-                    if (isSafe(sublist)) return@count true
+                    isSafe(sublist)
                 }
-                false
             }
     }
 
