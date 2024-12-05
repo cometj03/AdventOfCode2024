@@ -1,10 +1,9 @@
 typealias Direction = Pair<Int, Int>
 
 fun main() {
-
-    fun xmas(input: List<String>, i: Int, j: Int, d: Direction, target: String, idx: Int = 0): Boolean {
+    tailrec fun xmas(input: List<String>, i: Int, j: Int, d: Direction, target: String, idx: Int = 0): Boolean {
         if (idx == target.length) return true
-        if (i !in 0..<input.size || j !in 0..<input.first().length) return false
+        if (i !in input.indices || j !in input.first().indices) return false
         if (input[i][j] != target[idx]) return false
 
         val (ii, jj) = (i + d.first to j + d.second)
@@ -13,34 +12,27 @@ fun main() {
 
     fun part1(input: List<String>): Int {
         check(input.all { it.length == input.first().length })
-
         val direction: List<Direction> = listOf(0 to 1, 0 to -1, 1 to 0, -1 to 0, 1 to 1, 1 to -1, -1 to 1, -1 to -1)
-        var ans = 0
 
-        input.forEachIndexed { i, s ->
-            s.forEachIndexed { j, _ ->
-                ans += direction.count { d -> xmas(input, i, j, d, "XMAS") }
+        return input.withIndex().sumOf { (i, s) ->
+            s.indices.sumOf { j ->
+                direction.count { d -> xmas(input, i, j, d, "XMAS") }
             }
         }
-        return ans
     }
 
     fun part2(input: List<String>): Int {
         check(input.all { it.length == input.first().length })
-
         val slash: Direction = 1 to -1
         val inverseSlash: Direction = 1 to 1
         val target = listOf("MAS", "SAM")
-        var ans = 0
 
-        input.forEachIndexed { i, s ->
-            s.forEachIndexed { j, _ ->
-                if (target.any { t -> xmas(input, i, j - 1, inverseSlash, t) }
-                    && target.any { t -> xmas(input, i, j + 1, slash, t) })
-                    ans++
+        return input.withIndex().sumOf { (i, s) ->
+            s.indices.count { j ->
+                target.any { t -> xmas(input, i, j - 1, inverseSlash, t) }
+                        && target.any { t -> xmas(input, i, j + 1, slash, t) }
             }
         }
-        return ans
     }
 
     val testcase = """
