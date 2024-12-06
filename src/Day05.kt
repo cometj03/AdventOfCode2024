@@ -1,22 +1,19 @@
-typealias Graph = HashMap<Int, IntArray>
+typealias Graph = Map<Int, Set<Int>>
 
 fun main() {
+    // return a subgraph with `nodes` from `graph`
     fun subGraph(graph: Graph, nodes: List<Int>): Graph {
-        val subGraph: Graph = hashMapOf()
-        nodes.forEach { n ->
-            subGraph[n] = nodes.filter { graph[n]?.contains(it) ?: false }.toIntArray()
-        }
-        return subGraph
+        return nodes.associateWith { graph[it]?.intersect(nodes.toSet()) ?: emptySet() }
     }
 
     fun isSorted(graph: Graph, list: List<Int>): Boolean {
         val inDegree = IntArray(100) { 0 }
-        graph.forEach { (_, nodes) ->
-            nodes.forEach { v -> inDegree[v]++ }
+        for ((_, nodes) in graph) {
+            for (n in nodes) inDegree[n]++
         }
-        list.forEach { n ->
-            if (inDegree[n] != 0) return false
-            graph[n]?.forEach { v -> inDegree[v]-- }
+        for (i in list) {
+            if (inDegree[i] != 0) return false
+            graph[i]?.forEach { n -> inDegree[n]-- }
         }
         return true
     }
@@ -24,59 +21,51 @@ fun main() {
     fun sort(graph: Graph, list: List<Int>): List<Int> {
         val inDegree = IntArray(100) { 0 }
         val vis = IntArray(100) { 0 }
-        val ret = mutableListOf<Int>()
 
-        graph.forEach { (_, nodes) ->
-            nodes.forEach { v -> inDegree[v]++ }
+        for ((_, nodes) in graph) {
+            for (n in nodes) inDegree[n]++
         }
 
-        list.indices.forEach { _ ->
+        return list.map {
             val n = list.find { vis[it] == 0 && inDegree[it] == 0 } ?: error("")
-            graph[n]?.forEach { inDegree[it]-- }
-            ret.add(n)
+            graph[n]?.forEach { next -> inDegree[next]-- }
             vis[n] = 1
+            n
         }
-        return ret
     }
 
     fun part1(input: List<String>): Int {
-        val A = input.indexOf("")
-        val rules = input.subList(0, A).map { it.split("|").map(String::toInt) }
-        val samples = input.subList(A + 1, input.size).map { it.split(",").map(String::toInt) }
+        val idx = input.indexOf("")
+        // before|after1, before|after2 ...
+        // => { before: [after1, after2, ...] }
+        val rules: Graph = input.subList(0, idx)
+            .map { it.split("|").map(String::toInt) }
+            .groupBy({ it[0] }, { it[1] })
+            .mapValues { it.value.toSet() }
+        val updates = input.subList(idx + 1, input.size).map { it.split(",").map(String::toInt) }
 
-        val graph: Graph = hashMapOf()
-        rules.forEach { (u, v) ->
-            graph[u] = graph.getOrElse(u) { intArrayOf() } + intArrayOf(v)
-        }
-
-        var ans = 0
-        samples.forEach { sample ->
-            val subGraph = subGraph(graph, sample)
-            if (isSorted(subGraph, sample))
-                ans += sample[sample.size / 2]
-        }
-        return ans
+        return updates
+            .filter { line ->
+                val subGraph = subGraph(rules, line)
+                isSorted(subGraph, line)
+            }
+            .sumOf { it[it.size / 2] }
     }
 
     fun part2(input: List<String>): Int {
-        val A = input.indexOf("")
-        val rules = input.subList(0, A).map { it.split("|").map(String::toInt) }
-        val samples = input.subList(A + 1, input.size).map { it.split(",").map(String::toInt) }
+        val idx = input.indexOf("")
+        val rules: Graph = input.subList(0, idx)
+            .map { it.split("|").map(String::toInt) }
+            .groupBy({ it[0] }, { it[1] })
+            .mapValues { it.value.toSet() }
+        val updates = input.subList(idx + 1, input.size).map { it.split(",").map(String::toInt) }
 
-        val graph: Graph = hashMapOf()
-        rules.forEach { (u, v) ->
-            graph[u] = graph.getOrElse(u) { intArrayOf() } + intArrayOf(v)
-        }
-
-        var ans = 0
-        samples.forEach { sample ->
-            val subGraph = subGraph(graph, sample)
-            if (!isSorted(subGraph, sample)) {
-                val sortedList = sort(subGraph, sample)
-                ans += sortedList[sortedList.size / 2]
+        return updates
+            .mapNotNull { line ->
+                val subGraph = subGraph(rules, line)
+                if (isSorted(subGraph, line)) null else sort(subGraph, line)
             }
-        }
-        return ans
+            .sumOf { it[it.size / 2] }
     }
 
     val testcase = """
@@ -110,8 +99,8 @@ fun main() {
         97,13,75,29,47
     """.trimIndent().lines()
 
-    check(part1(testcase) == 143)
-    check(part2(testcase) == 123)
+    check(part1(testcase).println() == 143)
+    check(part2(testcase).println() == 123)
 
     val input = readInput("Day05")
     part1(input).println()
