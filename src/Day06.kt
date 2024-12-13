@@ -1,72 +1,75 @@
 fun main() {
-    val direction: List<Pair<Int, Int>> = listOf(-1 to 0, 0 to 1, 1 to 0, 0 to -1)
-
-    fun parseInput(input: List<String>): Triple<List<IntArray>, Int, Int> {
-        var starti = 0
-        var startj = 0
-        val map = input.mapIndexed { i, line ->
-            line.mapIndexed { j, c ->
-                if (c == '^') {
-                    starti = i
-                    startj = j
-                }
-                if (c == '#') -1 else 0
-            }.toIntArray()
-        }
-        return Triple(map, starti, startj)
-    }
-
-    tailrec fun moveForward(map: List<IntArray>, i: Int, j: Int, dir: Int): Triple<Boolean, Int, Int> {
-        map[i][j] = 1
-        val ii = i + direction[dir].first
-        val jj = j + direction[dir].second
-        if (ii !in map.indices || jj !in map.first().indices)
-            return Triple(false, 0, 0)
-        if (map[ii][jj] == -1)
-            return Triple(true, i, j)
-        return moveForward(map, ii, jj, dir)
-    }
-
-    tailrec fun move(map: List<IntArray>, i: Int, j: Int, dir: Int = 0) {
-        val (obstacle, ii, jj) = moveForward(map, i, j, dir)
-        if (obstacle) move(map, ii, jj, (dir + 1) % 4) // change direction
-    }
-
-    tailrec fun isLoop(map: List<IntArray>, vis: Array<Array<IntArray>>, i: Int, j: Int, dir: Int = 0): Boolean {
-        val (obstacle, ii, jj) = moveForward(map, i, j, dir)
-        if (!obstacle) return false
-        // already visited
-        if (vis[ii][jj][dir] == 1) return true
-        // remember position and dir
-        vis[ii][jj][dir] = 1
-        return isLoop(map, vis, ii, jj, (dir + 1) % 4)
-    }
+    val di = intArrayOf(-1, 0, 1, 0)
+    val dj = intArrayOf(0, 1, 0, -1)
 
     fun part1(input: List<String>): Int {
-        check(input.all { it.length == input.first().length })
-        val (map, guardi, guardj) = parseInput(input)
-        move(map, guardi, guardj, 0)
-        return map.sumOf { it.count { i -> i == 1 } }
+        val n = input.size
+        val m = input[0].length
+        check(input.all { it.length == m })
+        var i0 = -1
+        var j0 = -1
+        for (i in 0..<n)
+            for (j in 0..<m)
+                if (input[i][j] == '^') {
+                    i0 = i
+                    j0 = j
+                }
+
+        var cnt = 0
+        var d = 0
+        val vis = Array(n) { BooleanArray(m) }
+        while (true) {
+            if (!vis[i0][j0]) cnt++
+            vis[i0][j0] = true
+            val ii = i0 + di[d]
+            val jj = j0 + dj[d]
+            if (ii !in 0..<n || jj !in 0..<m) break
+            if (input[ii][jj] == '#') {
+                d = (d + 1) % 4
+                continue
+            }
+            i0 = ii
+            j0 = jj
+        }
+        return cnt
     }
 
     fun part2(input: List<String>): Int {
-        check(input.all { it.length == input.first().length })
-        val (map, guardi, guardj) = parseInput(input)
-
-        var ans = 0
-        val vis = Array(map.size) { Array(map.first().size) { IntArray(4) } }
-
-        for (i in map.indices) {
-            for (j in map[i].indices) {
-                if (map[i][j] == -1 || i == guardi && j == guardj) continue
-                // clear vis
-                vis.forEach { arr ->
-                    arr.forEach { it.indices.forEach { i -> it[i] = 0 } }
+        val n = input.size
+        val m = input[0].length
+        check(input.all { it.length == m })
+        var i0 = -1
+        var j0 = -1
+        for (i in 0..<n)
+            for (j in 0..<m)
+                if (input[i][j] == '^') {
+                    i0 = i
+                    j0 = j
                 }
-                map[i][j] = -1
-                if (isLoop(map, vis, guardi, guardj))
+
+        val vis = Array(4) { Array(n) { BooleanArray(m) } }
+        var ans = 0
+        for (oi in 0..<n) for (oj in 0..<m) {
+            if (input[oi][oj] == '#') continue
+            var i = i0
+            var j = j0
+            var d = 0
+            vis.forEach { a -> a.forEach { it.fill(false) } }
+            while (true) {
+                if (vis[d][i][j]) {
                     ans++
-                map[i][j] = 0
+                    break
+                }
+                vis[d][i][j] = true
+                val ii = i + di[d]
+                val jj = j + dj[d]
+                if (ii !in 0..<n || jj !in 0..<m) break
+                if (input[ii][jj] == '#' || (ii == oi && jj == oj)) {
+                    d = (d + 1) % 4
+                    continue
+                }
+                i = ii
+                j = jj
             }
         }
         return ans
